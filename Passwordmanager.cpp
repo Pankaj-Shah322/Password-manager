@@ -10,16 +10,14 @@
 using namespace std;
 
 // PasswordManager class definition
-class PasswordManager
-{
+class PasswordManager {
 private:
     unordered_map<string, string> passwords; // Stores website and password pairs
     string masterPassword;
     const string filename = "passwords.txt";
 
     // Function to generate a random password using better randomness
-    string generatePassword(int length)
-    {
+    string generatePassword(int length) {
         const char charset[] = "0123456789"
                                "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                "abcdefghijklmnopqrstuvwxyz"
@@ -28,42 +26,34 @@ private:
         random_device rd;                                                // Obtain a random number from hardware
         mt19937 generator(rd());                                         // Seed the generator
         uniform_int_distribution<> distribution(0, sizeof(charset) - 2); // Define the range
-        for (int i = 0; i < length; ++i)
-        {
+        for (int i = 0; i < length; ++i) {
             password += charset[distribution(generator)];
         }
         return password;
     }
 
     // Function to save passwords to a file with error checking
-    void saveToFile()
-    {
+    void saveToFile() {
         ofstream file(filename);
-        if (!file)
-        {
+        if (!file) {
             throw runtime_error("Unable to open file for writing.");
         }
-        for (const auto &pair : passwords)
-        {
+        for (const auto &pair : passwords) {
             file << pair.first << ":" << pair.second << endl;
         }
     }
 
     // Function to load passwords from a file with error checking
-    void loadFromFile()
-    {
+    void loadFromFile() {
         ifstream file(filename);
-        if (!file)
-        {
+        if (!file) {
             cerr << "Unable to open file for reading. Starting fresh." << endl;
             return;
         }
         string line;
-        while (getline(file, line))
-        {
+        while (getline(file, line)) {
             size_t pos = line.find(':');
-            if (pos != string::npos)
-            {
+            if (pos != string::npos) {
                 string website = line.substr(0, pos);
                 string password = line.substr(pos + 1);
                 passwords[website] = password;
@@ -72,16 +62,13 @@ private:
     }
 
 public:
-    PasswordManager(const string &masterPwd) : masterPassword(masterPwd)
-    {
+    PasswordManager(const string &masterPwd) : masterPassword(masterPwd) {
         loadFromFile(); // Load passwords from file at startup
     }
 
     // Function to add a new password
-    void addPassword(const string &website, const string &password)
-    {
-        if (password.length() < 8)
-        {
+    void addPassword(const string &website, const string &password) {
+        if (password.length() < 8) {
             throw runtime_error("Password must be at least 8 characters long.");
         }
         passwords[website] = password;
@@ -89,20 +76,16 @@ public:
     }
 
     // Function to retrieve a password
-    string getPassword(const string &website)
-    {
-        if (passwords.find(website) == passwords.end())
-        {
+    string getPassword(const string &website) {
+        if (passwords.find(website) == passwords.end()) {
             throw runtime_error("Website not found.");
         }
         return passwords[website];
     }
 
     // Function to generate and add a new password
-    void generateAndAddPassword(const string &website, int length)
-    {
-        if (length < 8)
-        {
+    void generateAndAddPassword(const string &website, int length) {
+        if (length < 8) {
             throw runtime_error("Password length must be at least 8 characters.");
         }
         string newPassword = generatePassword(length);
@@ -110,16 +93,37 @@ public:
         cout << "Generated password for " << website << ": " << newPassword << endl;
     }
 
+    // Function to delete a password
+    void deletePassword(const string &website) {
+        if (passwords.find(website) == passwords.end()) {
+            throw runtime_error("Website not found.");
+        }
+        passwords.erase(website);
+        saveToFile();
+        cout << "Password for " << website << " deleted.\n";
+    }
+
+    // Function to update an existing password
+    void updatePassword(const string &website, const string &newPassword) {
+        if (newPassword.length() < 8) {
+            throw runtime_error("Password must be at least 8 characters long.");
+        }
+        if (passwords.find(website) == passwords.end()) {
+            throw runtime_error("Website not found.");
+        }
+        passwords[website] = newPassword;
+        saveToFile();
+        cout << "Password for " << website << " updated.\n";
+    }
+
     // Function to authenticate the user
-    bool authenticate(const string &password)
-    {
+    bool authenticate(const string &password) {
         return password == masterPassword;
     }
 };
 
 // Main function to interact with the password manager
-int main()
-{
+int main() {
     string masterPwd;
     cout << "Set your master password: ";
     cin >> masterPwd;
@@ -130,24 +134,21 @@ int main()
     cout << "Enter master password to access the manager: ";
     cin >> inputPwd;
 
-    if (manager.authenticate(inputPwd))
-    {
+    if (manager.authenticate(inputPwd)) {
         cout << "Authentication successful.\n";
-
-        while (true)
-        {
+        while (true) {
             cout << "\nMenu:\n";
             cout << "1. Add Password\n";
             cout << "2. Get Password\n";
             cout << "3. Generate and Add Password\n";
-            cout << "4. Exit\n";
+            cout << "4. Update Password\n";
+            cout << "5. Delete Password\n";
+            cout << "6. Exit\n";
             cout << "Enter choice: ";
-
             int choice;
             cin >> choice;
 
-            if (choice == 4)
-            {
+            if (choice == 6) {
                 cout << "Exiting...\n";
                 break;
             }
@@ -156,10 +157,8 @@ int main()
             string password;
             int length;
 
-            try
-            {
-                switch (choice)
-                {
+            try {
+                switch (choice) {
                 case 1:
                     cout << "Enter website: ";
                     cin >> website;
@@ -180,19 +179,27 @@ int main()
                     cin >> length;
                     manager.generateAndAddPassword(website, length);
                     break;
+                case 4:
+                    cout << "Enter website: ";
+                    cin >> website;
+                    cout << "Enter new password: ";
+                    cin >> password;
+                    manager.updatePassword(website, password);
+                    break;
+                case 5:
+                    cout << "Enter website: ";
+                    cin >> website;
+                    manager.deletePassword(website);
+                    break;
                 default:
                     cout << "Invalid choice.\n";
                     break;
                 }
-            }
-            catch (const runtime_error &e)
-            {
+            } catch (const runtime_error &e) {
                 cerr << "Error: " << e.what() << endl;
             }
         }
-    }
-    else
-    {
+    } else {
         cout << "Authentication failed.\n";
     }
 
